@@ -1,0 +1,6 @@
+.claude/
+
+# User-downloaded eBird data and generated frequency tables
+data/
+*.barchart.txt
+*_frequencies.json

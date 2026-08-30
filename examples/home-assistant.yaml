@@ -1,0 +1,41 @@
+# BirdMic starter configuration for Home Assistant.
+# Merge the relevant sections into your configuration or a package; do not copy
+# this file verbatim if those top-level keys already exist in your setup.
+
+mqtt:
+  sensor:
+    - name: BirdNET Latest Detection
+      state_topic: birdnet
+      value_template: "{{ value_json.CommonName }}"
+      json_attributes_topic: birdnet
+      json_attributes_template: "{{ value_json | tojson }}"
+
+# Optional, SQLite-only recent-history sensor. Adjust the database URL if you
+# use MariaDB/PostgreSQL, or omit this section if recent history is unnecessary.
+sensor:
+  - platform: sql
+    db_url: sqlite:////config/home-assistant_v2.db
+    queries:
+      - name: Recent Bird Detections
+        query: >
+          SELECT json_group_array(json_object('name', common_name, 'time', detection_time)) AS detections
+          FROM (
+            SELECT json_extract(attributes, '$.CommonName') AS common_name,
+                   MAX(last_updated_ts) AS detection_time
+            FROM states
+            WHERE entity_id = 'sensor.birdnet_latest_detection'
+              AND json_extract(attributes, '$.CommonName') IS NOT NULL
+            GROUP BY common_name
+            ORDER BY detection_time DESC
+            LIMIT 20
+          )
+        column: detections
+
+# Optional helper for an alert automation. Store the generated eBird JSON
+# somewhere under /config and pass its path plus the detected SpeciesCode to
+# scripts/check_rare_bird.py. Use a notify service from *your* installation.
+#
+# shell_command:
+#   bird_frequency: >-
+#     python3 /config/scripts/check_rare_bird.py {{ species_code }}
+#     /config/birdmic/frequencies.json
