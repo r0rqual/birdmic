@@ -1,6 +1,9 @@
 # BirdMic setup guide
 
-This guide describes one practical, self-hosted path from outdoor audio to Home Assistant. Treat device names, paths, IP addresses, audio devices, display layout, and notification services as examples to adapt.
+This guide describes one practical, self-hosted path from outdoor audio to
+Home Assistant. BirdNET-Go is a good fit for new installations, while
+BirdNET-Pi remains a valid option. Treat device names, paths, IP addresses,
+audio devices, display layout, and notification services as examples to adapt.
 
 ## 1. Build the audio node
 
@@ -71,7 +74,27 @@ ffplay rtsp://<pi-host-or-ip>:8554/<stream-name>
 
 Give the Pi a DHCP reservation or another stable address; avoid hard-coding a private address into files you intend to share.
 
-## 2. Connect BirdNET-Pi
+## 2. Connect a BirdNET analyzer
+
+### BirdNET-Go
+
+[BirdNET-Go](https://github.com/tphakala/birdnet-go) can use a local audio
+device or consume an RTSP stream such as the one above. Configure its source,
+location, confidence policy, and MQTT integration in its web interface. It
+also exposes a read-only API used by richer dashboards and renderers.
+
+For Home Assistant OS or Supervised installations, one convenient route is
+the BirdNET-Go app from
+[alexbelgium's add-on repository](https://github.com/alexbelgium/hassio-addons).
+Container and standalone installations can run BirdNET-Go beside Home
+Assistant instead. Follow the upstream project for current installation and
+configuration details.
+
+When migrating from another analyzer, run only one publisher on the production
+MQTT topic. Put a comparison analyzer on a separate test topic and disable
+external uploads there to avoid duplicate observations.
+
+### BirdNET-Pi
 
 Install the Mosquitto broker add-on in Home Assistant, then install a BirdNET-Pi add-on or service that supports an RTSP input. Configure it with your own stream URL and location:
 
@@ -85,7 +108,10 @@ MQTT_PORT: 1883
 MQTT_TOPIC: birdnet
 ```
 
-The exact option names vary by BirdNET-Pi distribution. The important contract is an MQTT JSON message with fields such as `CommonName`, `ScientificName`, `Confidence`, and `SpeciesCode` on the topic you choose.
+The exact option names vary by BirdNET-Pi distribution. The important contract
+for the example Home Assistant sensor is an MQTT JSON message with fields such
+as `CommonName`, `ScientificName`, `Confidence`, and `SpeciesCode` on the topic
+you choose. Adapt the sensor if your analyzer publishes a different schema.
 
 ## 3. Add Home Assistant entities
 
@@ -102,7 +128,14 @@ data:
     "Confidence":0.85,"SpeciesCode":"example1"}
 ```
 
-## 4. Optional ESPHome display
+## 4. Optional displays
+
+For an artwork-oriented Home Assistant dashboard or a dedicated e-paper frame,
+see [`display-options.md`](display-options.md). The dashboard can read
+BirdNET-Go directly; a small display should receive an already-rendered image
+instead of carrying analyzer or Home Assistant credentials.
+
+### ESPHome display
 
 Any ESPHome display can subscribe to the latest-detection sensor and show it. A useful small interface has two pages:
 
@@ -144,7 +177,7 @@ Work along the pipeline:
 
 1. Confirm the Pi is reachable and both `mediamtx` and `birdmic` services are active: `systemctl status mediamtx birdmic`.
 2. Play the RTSP URL with `ffplay` or VLC from another host.
-3. Check the BirdNET-Pi logs for connection or audio-processing errors.
+3. Check the BirdNET-Go or BirdNET-Pi logs for connection or audio-processing errors.
 4. Use an MQTT client or Home Assistant's MQTT listener to confirm messages reach the configured topic.
 5. Check the Home Assistant MQTT sensor's topic and JSON field names against an actual message.
 

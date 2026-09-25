@@ -1,0 +1,26 @@
+# Example panel view for HABirdDashboard's Bird Card.
+# Replace the BirdNET-Go URL and tune the visual settings for your display.
+views:
+  - title: Birds
+    path: birds
+    icon: mdi:bird
+    type: panel
+    cards:
+      - type: custom:habird-card
+        view: collage
+        view_selector: true
+        title: ""
+        names: off
+        window: "24"
+        background: paper
+        paper_texture: 0.04
+        font: serif
+        birdnet_url: "http://<birdnet-go-host>:8080"
+        data_source: auto
+        sit_confidence: 0.90
+        collage_fill: 0.75
+        collage_shape: cluster
+        tap_action: info
+        clock: false
+        weather: false
+        hide_cursor: false
