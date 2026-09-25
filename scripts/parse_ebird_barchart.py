@@ -39,7 +39,13 @@ def parse_barchart(barchart_file: Path, names: dict[str, str]) -> tuple[dict[str
             if len(columns) < 49:
                 continue
             species_name = columns[0].strip()
-            if not species_name or species_name.lower() == "species" or "january" in species_name.lower():
+            normalized_name = species_name.lower()
+            if (
+                not species_name
+                or normalized_name == "species"
+                or normalized_name.startswith("sample size")
+                or "january" in normalized_name
+            ):
                 continue
             try:
                 weeks = [float(value.strip() or 0) for value in columns[1:49]]
@@ -61,6 +67,9 @@ def main() -> int:
     barchart_file, taxonomy_file, output_file = map(Path, sys.argv[1:])
     names = load_taxonomy(taxonomy_file)
     frequencies, unmatched = parse_barchart(barchart_file, names)
+    if not frequencies:
+        print("No species frequencies were parsed; refusing to write output", file=sys.stderr)
+        return 1
     output_file.parent.mkdir(parents=True, exist_ok=True)
     output_file.write_text(json.dumps(frequencies, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(f"Wrote {len(frequencies)} species to {output_file}")

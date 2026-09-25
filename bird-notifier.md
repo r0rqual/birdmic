@@ -146,7 +146,13 @@ For a touch display, make navigation and touch targets part of your own ESPHome 
 
 ## 5. Optional regional rarity alerts
 
-eBird's bar chart offers weekly occurrence frequencies for a region. The data is inherently regional, so this repository includes no pre-generated regional file.
+The region- and season-aware alert is the main BirdMic customization. See
+[`regional-rarity-alerts.md`](regional-rarity-alerts.md) for the full data
+pipeline, Home Assistant package, safety gates, tests, and maintenance policy.
+
+eBird's bar chart offers occurrence frequencies for 48 periods throughout the
+year. The data is inherently regional, so this repository includes no
+pre-generated regional file.
 
 1. In eBird, open the bar chart for your chosen region and download its histogram data.
 2. Download the current eBird taxonomy CSV from the eBird/Clements taxonomy download page.
@@ -165,7 +171,12 @@ eBird's bar chart offers weekly occurrence frequencies for a region. The data is
    python3 /config/scripts/check_rare_bird.py <species-code> /config/birdmic/frequencies.json
    ```
 
-The helper prints a number between `0.0` and `1.0`. Choose an alert threshold appropriate for your region (for example, `0.05`), require a minimum BirdNET confidence, then call notification services that exist in your installation. Missing or malformed data returns `1.0`, avoiding false rare-bird alerts.
+The helper prints a number between `0.0` and `1.0`. Choose an alert threshold
+appropriate for your region (for example, `0.05`), require a minimum BirdNET
+confidence, then call notification services that exist in your installation.
+Unknown species return `1.0`, avoiding false rare-bird alerts. Missing or
+malformed data exits nonzero so it is diagnosable; the Home Assistant example
+converts that failure to `1.0` and therefore still fails closed.
 
 eBird divides the year into 48 four-per-month periods. Refresh both the bar chart and taxonomy periodically, especially after an eBird taxonomy update.
 

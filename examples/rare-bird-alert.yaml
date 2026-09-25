@@ -1,0 +1,85 @@
+# Example Home Assistant package for region- and season-aware rarity alerts.
+#
+# Prerequisites:
+# - Enable packages or merge each domain into your existing configuration.
+# - Copy scripts/check_rare_bird.py to /config/birdmic/.
+# - Generate /config/birdmic/region_frequencies.json for your eBird region.
+# - Provide sensor.birdnet_latest_detection with normalized species_code and
+#   confidence attributes as shown in examples/home-assistant.yaml.
+
+input_boolean:
+  rare_bird_alerts_enabled:
+    name: Rare Bird Alerts
+    icon: mdi:bird
+
+command_line:
+  - sensor:
+      name: Bird Rarity Check
+      unique_id: bird_rarity_check
+      command: >-
+        python3 /config/birdmic/check_rare_bird.py
+        {% set code = state_attr('sensor.birdnet_latest_detection',
+          'species_code') | default('', true) | string | lower | trim %}
+        {{ code if code | regex_match('^[a-z0-9]{3,16}$') else 'unknown' }}
+        /config/birdmic/region_frequencies.json || echo 1.0
+      scan_interval: 86400
+      value_template: "{{ value | float(1.0) }}"
+
+automation:
+  - id: regional_rare_bird_alert
+    alias: Regional Rare Bird Alert
+    description: Notify for confident birds uncommon in the current eBird period
+    mode: single
+    max_exceeded: silent
+    triggers:
+      - trigger: state
+        entity_id: sensor.birdnet_latest_detection
+        # Do not replay a restored detection when Home Assistant starts.
+        not_from:
+          - unknown
+          - unavailable
+        not_to:
+          - unknown
+          - unavailable
+          - No detections today
+    conditions:
+      - condition: state
+        entity_id: input_boolean.rare_bird_alerts_enabled
+        state: "on"
+      - condition: template
+        alias: Require an eBird-style species code
+        value_template: >-
+          {% set code = state_attr('sensor.birdnet_latest_detection',
+            'species_code') | default('', true) | string | lower | trim %}
+          {% set marked_eligible = state_attr(
+            'sensor.birdnet_latest_detection', 'rarity_eligible') %}
+          {{ code | regex_match('^[a-z0-9]{3,16}$')
+            and (marked_eligible is none or marked_eligible | bool(false)) }}
+      - condition: template
+        alias: Require a confident detection
+        value_template: >-
+          {{ state_attr('sensor.birdnet_latest_detection', 'confidence')
+            | float(0) >= 0.70 }}
+    actions:
+      - action: homeassistant.update_entity
+        target:
+          entity_id: sensor.bird_rarity_check
+      - delay:
+          milliseconds: 500
+      - if:
+          - condition: template
+            alias: Below the five-percent regional threshold
+            value_template: >-
+              {{ states('sensor.bird_rarity_check') | float(1.0) < 0.05 }}
+        then:
+          # Replace or supplement this portable notification with your own
+          # mobile, voice-assistant, or other notify actions.
+          - action: persistent_notification.create
+            data:
+              title: Rare Bird Detected
+              message: >-
+                {{ states('sensor.birdnet_latest_detection') }}
+                ({{ (state_attr('sensor.birdnet_latest_detection',
+                  'confidence') | float(0) * 100) | round(0) }}% confidence;
+                {{ (states('sensor.bird_rarity_check') | float(1)
+                  * 100) | round(2) }}% regional frequency)
