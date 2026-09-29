@@ -39,16 +39,20 @@ small client only fetches and displays finished frames. Its stock firmware
 targets particular ESP32/e-paper hardware, but the same boundary works for a
 Raspberry Pi attached to another panel.
 
-A minimal latest-bird frame should:
+A small ambient frame should:
 
 - read BirdNET through a renderer or narrow adapter, never by writing to its
   database;
 - request an image sized and rotated for the physical panel;
+- pre-render and cache the likely species catalog when rendering is expensive;
 - use an ETag or equivalent revision so unchanged content does not refresh;
-- replace the screen only when a newer qualifying detection is available;
+- choose an explicit policy such as latest detection or the seasonally rarest
+  eligible species in a rolling window;
+- use a cooldown if a daily schedule should avoid repeating the same species;
 - keep the last successful image through network, renderer, and client
   restarts;
 - avoid queueing every detection while the slow e-paper panel is refreshing;
+- keep catalog synchronization separate from the panel-write path;
 - store no MQTT, Home Assistant, or analyzer credentials when a read-only LAN
   endpoint can do the job.
 

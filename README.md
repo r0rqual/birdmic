@@ -27,7 +27,8 @@ integration and rarity policy are the value added here.
 flowchart LR
     Mic[Microphone, camera, or capture Pi] -->|Local or RTSP audio| BirdNET[BirdNET-Go or BirdNET-Pi]
     BirdNET -->|MQTT detections| HA[Home Assistant]
-    BirdNET -->|Read-only API or database| Frame[Optional e-paper frame]
+    BirdNET -->|Read-only API| Renderer[Optional image renderer]
+    Renderer -->|Pre-rendered image| Frame[Optional e-paper frame]
     HA --> Display[Dashboard or ESPHome display]
     HA --> Alerts[Optional rare-bird notifications]
 ```
